@@ -42,12 +42,12 @@ builder.Services.AddRateLimiter(options =>
     // Add a policy that partitions by user and applies different limits
     options.AddPolicy("DynamicUserRateLimit", httpContext =>
     {
-        var userId = httpContext.Request.Query["userId"].FirstOrDefault() ?? 
-                    httpContext.Request.Headers["X-User-Id"].FirstOrDefault() ?? 
+        var userId = httpContext.Request.Query["userId"].FirstOrDefault() ??
+                    httpContext.Request.Headers["X-User-Id"].FirstOrDefault() ??
                     "anonymous";
-        
+
         var permitLimit = GetUserRateLimit(userId);
-        
+
         return RateLimitPartition.GetFixedWindowLimiter(userId, _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = permitLimit,
@@ -74,15 +74,15 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+
 app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), appBuilder =>
 {
-    appBuilder.UseCors("PublicApiCors");
     appBuilder.UseRateLimiter();
 });
 
 app.UseWhen(context => context.Request.Path.StartsWithSegments("/admin"), appBuilder =>
 {
-    // Admin-specific middleware can be added here
+    app.UseCors("PublicApiCors");
 });
 
 app.MapControllers();
