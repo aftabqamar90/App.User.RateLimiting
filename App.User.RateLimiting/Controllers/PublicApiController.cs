@@ -9,7 +9,7 @@ namespace App.User.RateLimiting.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [EnableCors("PublicApiCors")]
-[EnableRateLimiting("ApiKeyRateLimit")]
+[EnableRateLimiting("DynamicUserRateLimit")]
 public class PublicApiController : ControllerBase
 {
     private readonly ILogger<PublicApiController> _logger;
@@ -22,25 +22,44 @@ public class PublicApiController : ControllerBase
     [HttpGet]
     public IActionResult Get()
     {
-        var apiKey = "Test-API-Key";
+        var userId = GetUserIdFromRequest();
         var timestamp = DateTime.UtcNow;
-        
-        _logger.LogInformation("API Request - Key: {ApiKey}, Endpoint: {Endpoint}, Timestamp: {Timestamp}, IP: {IP}", 
-            apiKey, "GET /api/publicapi", timestamp, HttpContext.Connection.RemoteIpAddress);
-        
-        return Ok(new { message = "Public API endpoint", timestamp, apiKey });
+
+        _logger.LogInformation("API Request - User: {UserId}, Endpoint: {Endpoint}, Timestamp: {Timestamp}, IP: {IP}",
+            userId, "GET /api/publicapi", timestamp, HttpContext.Connection.RemoteIpAddress);
+
+        return Ok(new
+        {
+            message = "Public API endpoint",
+            timestamp,
+            userId
+        });
     }
 
     [HttpPost]
     public IActionResult Post([FromBody] object data)
     {
-        var apiKey = "Test-API-Key";
+        var userId = GetUserIdFromRequest();
         var timestamp = DateTime.UtcNow;
-        
-        _logger.LogInformation("API Request - Key: {ApiKey}, Endpoint: {Endpoint}, Timestamp: {Timestamp}, IP: {IP}, DataSize: {DataSize}", 
-            apiKey, "Test-API-Key", timestamp, HttpContext.Connection.RemoteIpAddress, 
+
+        _logger.LogInformation("API Request - User: {UserId}, Endpoint: {Endpoint}, Timestamp: {Timestamp}, IP: {IP}, DataSize: {DataSize}",
+            userId, "POST /api/publicapi", timestamp, HttpContext.Connection.RemoteIpAddress,
             System.Text.Json.JsonSerializer.Serialize(data).Length);
-        
-        return Ok(new { message = "Data received", timestamp, apiKey });
+
+        return Ok(new
+        {
+            message = "Data received",
+            timestamp,
+            userId
+        });
+    }
+
+
+
+    private string GetUserIdFromRequest()
+    {
+        return Request.Query["userId"].FirstOrDefault() ??
+               Request.Headers["X-User-Id"].FirstOrDefault() ??
+               "anonymous";
     }
 }
