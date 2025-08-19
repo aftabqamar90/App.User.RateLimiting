@@ -39,10 +39,10 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("ApiKeyRateLimit", limiterOptions =>
     {
-        limiterOptions.PermitLimit = 100;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.PermitLimit = 5;          // Only 1 request allowed
+        limiterOptions.Window = TimeSpan.FromMinutes(1); // Per minute
         limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 2;
+        limiterOptions.QueueLimit = 0;          // No queuing allowed
     });
 });
 
@@ -62,12 +62,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseCors();
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api"), appBuilder =>
+{
+    appBuilder.UseCors("PublicApiCors");
+    appBuilder.UseRateLimiter();
+});
 
-app.UseRateLimiter();
-
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/admin"), appBuilder =>
+{
+    // Admin-specific middleware can be added here
+});
 
 app.MapControllers();
 
