@@ -1,5 +1,84 @@
 @App.User.RateLimiting_HostAddress = http://localhost:5287
 
+# Get API version information
+GET {{App.User.RateLimiting_HostAddress}}/api/version
+Accept: application/json
+
+###
+
+# Get v1 API endpoint (using header)
+GET {{App.User.RateLimiting_HostAddress}}/api/publicapi
+Accept: application/json
+X-Version: 1.0
+
+###
+
+# Post to v1 API endpoint (using header)
+POST {{App.User.RateLimiting_HostAddress}}/api/publicapi
+Content-Type: application/json
+Accept: application/json
+X-Version: 1.0
+
+{
+  "test": "data",
+  "message": "Hello from v1"
+}
+
+###
+
+# Get v2 API endpoint (using header)
+GET {{App.User.RateLimiting_HostAddress}}/api/publicapi
+Accept: application/json
+X-Version: 2.0
+
+###
+
+# Post to v2 API endpoint (using header)
+POST {{App.User.RateLimiting_HostAddress}}/api/publicapi
+Content-Type: application/json
+Accept: application/json
+X-Version: 2.0
+
+{
+  "test": "data",
+  "message": "Hello from v2"
+}
+
+###
+
+# Get v2 API status endpoint (using header)
+GET {{App.User.RateLimiting_HostAddress}}/api/publicapi
+Accept: application/json
+X-Version: 2.0
+
+###
+
+# Get v1 API info
+GET {{App.User.RateLimiting_HostAddress}}/api/version/v1
+Accept: application/json
+
+###
+
+# Get v2 API info
+GET {{App.User.RateLimiting_HostAddress}}/api/version/v2
+Accept: application/json
+
+###
+
+# Test with query parameter version
+GET {{App.User.RateLimiting_HostAddress}}/api/publicapi?api-version=2.0
+Accept: application/json
+
+###
+
+# Test with header version
+GET {{App.User.RateLimiting_HostAddress}}/api/publicapi
+Accept: application/json
+api-version: 2.0
+
+###
+
+# Weather forecast (existing endpoint)
 GET {{App.User.RateLimiting_HostAddress}}/weatherforecast/
 Accept: application/json
 

@@ -4,12 +4,36 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 using App.User.RateLimiting.Authentication;
+using App.User.RateLimiting.Services;
+using Asp.Versioning;
+using Asp.Versioning.ApiExplorer;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 builder.Services.AddControllers();
+
+// Register services using extension methods
+builder.Services.AddAllServices();
+
+// Configure API versioning
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = ApiVersionReader.Combine(
+        new QueryStringApiVersionReader("api-version"),
+        new HeaderApiVersionReader("X-Version")
+    );
+})
+.AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = false;
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -39,23 +63,8 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddRateLimiter(options =>
 {
-    // Add a policy that partitions by user and applies different limits
-    options.AddPolicy("DynamicUserRateLimit", httpContext =>
-    {
-        var userId = httpContext.Request.Query["userId"].FirstOrDefault() ??
-                    httpContext.Request.Headers["X-User-Id"].FirstOrDefault() ??
-                    "anonymous";
-
-        var permitLimit = GetUserRateLimit(userId);
-
-        return RateLimitPartition.GetFixedWindowLimiter(userId, _ => new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = permitLimit,
-            Window = TimeSpan.FromMinutes(1),
-            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            QueueLimit = 0
-        });
-    });
+    var rateLimitService = builder.Services.BuildServiceProvider().GetRequiredService<IRateLimitConfigurationService>();
+    rateLimitService.ConfigureRateLimiting(options);
 });
 
 var app = builder.Build();
@@ -64,9 +73,10 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+
     app.MapScalarApiReference(options =>
     {
-        options.WithTitle("App.User.RateLimiting")
+        options.WithTitle("App.User.RateLimiting API")
         .WithTheme(ScalarTheme.Laserwave)
         .WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
     });
@@ -88,19 +98,3 @@ app.UseWhen(context => context.Request.Path.StartsWithSegments("/admin"), appBui
 app.MapControllers();
 
 app.Run();
-
-// Helper function to get user-specific rate limits
-static int GetUserRateLimit(string userId)
-{
-    return userId switch
-    {
-        "anonymous" => 1,   // Anonymous users: 1 request per minute
-        "user1" => 1,       // Free tier: 1 request per minute
-        "user2" => 20,      // Basic tier: 20 requests per minute
-        "user3" => 100,     // Professional tier: 100 requests per minute
-        "user4" => 500,     // Enterprise tier: 500 requests per minute
-        "admin" => 1000,    // Admin: 1000 requests per minute
-        "vip" => 2000,      // VIP: 2000 requests per minute
-        _ => 1              // Default to 1 request per minute for unknown users
-    };
-}

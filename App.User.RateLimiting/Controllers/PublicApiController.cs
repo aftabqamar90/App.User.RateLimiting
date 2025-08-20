@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.RateLimiting;
+using Asp.Versioning;
 
 namespace App.User.RateLimiting.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[ApiVersion("1.0")]
+[Route("api/publicapi")]
 [EnableCors("PublicApiCors")]
 [EnableRateLimiting("DynamicUserRateLimit")]
 public class PublicApiController : ControllerBase
@@ -24,15 +26,17 @@ public class PublicApiController : ControllerBase
     {
         var userId = GetUserIdFromRequest();
         var timestamp = DateTime.UtcNow;
+        var version = HttpContext.GetRequestedApiVersion()?.ToString() ?? "1.0";
 
-        _logger.LogInformation("API Request - User: {UserId}, Endpoint: {Endpoint}, Timestamp: {Timestamp}, IP: {IP}",
-            userId, "GET /api/publicapi", timestamp, HttpContext.Connection.RemoteIpAddress);
+        _logger.LogInformation("API v1 Request - User: {UserId}, Endpoint: {Endpoint}, Timestamp: {Timestamp}, IP: {IP}, Version: {Version}",
+            userId, "GET /api/v1/publicapi", timestamp, HttpContext.Connection.RemoteIpAddress, version);
 
         return Ok(new
         {
-            message = "Public API endpoint",
+            message = "Public API v1 endpoint",
             timestamp,
-            userId
+            userId,
+            version
         });
     }
 
@@ -41,16 +45,18 @@ public class PublicApiController : ControllerBase
     {
         var userId = GetUserIdFromRequest();
         var timestamp = DateTime.UtcNow;
+        var version = HttpContext.GetRequestedApiVersion()?.ToString() ?? "1.0";
 
-        _logger.LogInformation("API Request - User: {UserId}, Endpoint: {Endpoint}, Timestamp: {Timestamp}, IP: {IP}, DataSize: {DataSize}",
-            userId, "POST /api/publicapi", timestamp, HttpContext.Connection.RemoteIpAddress,
-            System.Text.Json.JsonSerializer.Serialize(data).Length);
+        _logger.LogInformation("API v1 Request - User: {UserId}, Endpoint: {Endpoint}, Timestamp: {Timestamp}, IP: {IP}, DataSize: {DataSize}, Version: {Version}",
+            userId, "POST /api/v1/publicapi", timestamp, HttpContext.Connection.RemoteIpAddress,
+            System.Text.Json.JsonSerializer.Serialize(data).Length, version);
 
         return Ok(new
         {
-            message = "Data received",
+            message = "Data received via v1 API",
             timestamp,
-            userId
+            userId,
+            version
         });
     }
 
